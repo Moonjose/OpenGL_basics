@@ -1,0 +1,37 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Pastas\\Programming\\Graphics\\OpenGL_basics\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{CFE8C05A-CD7F-4626-A8F6-0928D9C50B1E}|OpenGL_basics.vcxproj|C:\\Pastas\\Programming\\Graphics\\OpenGL_basics\\Basics.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{CFE8C05A-CD7F-4626-A8F6-0928D9C50B1E}|OpenGL_basics.vcxproj|solutionrelative:Basics.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Basics.cpp",
+              "DocumentMoniker": "C:\\Pastas\\Programming\\Graphics\\OpenGL_basics\\Basics.cpp",
+              "RelativeDocumentMoniker": "Basics.cpp",
+              "ToolTip": "C:\\Pastas\\Programming\\Graphics\\OpenGL_basics\\Basics.cpp",
+              "RelativeToolTip": "Basics.cpp",
+              "ViewState": "AgIAAAYAAAAAAAAAAAAAABUAAAACAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2025-09-04T15:35:44.429Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
