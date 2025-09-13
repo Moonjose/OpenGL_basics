@@ -2,185 +2,120 @@
 #include <GLFW/glfw3.h> 
 #include <iostream>
 
-// ---------------------------------------------------------
-// Funções utilitárias
-// ---------------------------------------------------------
-
-enum PrimitiveShape
-{
-    Triangle,
-    Rectangle
-};
+enum PrimitiveShape { Triangle, Rectangle };
 
 struct PrimitiveBuffers {
-    unsigned int VAO;
-    unsigned int VBO;
-    unsigned int EBO; // 0 se não for usado
+    unsigned int VAO[2];
+    unsigned int VBO[2];
+    unsigned int EBO;
     bool useEBO;
 };
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 PrimitiveBuffers setupPrimitive(PrimitiveShape shape);
+unsigned int compileShader(GLenum type, const char* source);
+unsigned int createProgram(unsigned int vertexShader, unsigned int fragmentShader);
 
-// ---------------------------------------------------------
-// Configurações da janela
-// ---------------------------------------------------------
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
-// ---------------------------------------------------------
-// Código-fonte do Vertex Shader (processa posições dos vértices)
-// ---------------------------------------------------------
 const char* vertexShaderSource =
     "#version 330 core\n"
-    "layout (location = 0) in vec3 aPos;\n"  // Entrada: posição do vértice (3 floats)
+    "layout (location = 0) in vec3 aPos;\n"
     "void main()\n"
     "{\n"
-    "   gl_Position = vec4(aPos, 1.0);\n"    // Converte vec3 -> vec4 para saída
+    "   gl_Position = vec4(aPos, 1.0);\n"
     "}\0";
 
-// ---------------------------------------------------------
-// Código-fonte do Fragment Shader (define cor dos pixels)
-// ---------------------------------------------------------
-const char* fragmentShaderSource =
+const char* fragmentShaderSourceOrange =
     "#version 330 core\n"
-    "out vec4 FragColor;\n"                  // Saída: cor final do fragmento
+    "out vec4 FragColor;\n"
     "void main()\n"
     "{\n"
-    "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"  // Cor laranja
+    "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
     "}\n\0";
 
-// ---------------------------------------------------------
-// Função principal
-// ---------------------------------------------------------
+const char* fragmentShaderSourceYellow =
+    "#version 330 core\n"
+    "out vec4 FragColor;\n"
+    "void main()\n"
+    "{\n"
+    "   FragColor = vec4(1.0f, 1.0f, 0.0f, 1.0f);\n"
+    "}\n\0";
+
 int main()
 {
-    // -----------------------------------------------------
-    // Inicialização do GLFW e criação da janela
-    // -----------------------------------------------------
     glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // Usar OpenGL 3.x
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // Core profile
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 #ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // Necessário no macOS
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
     GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
-    if (window == NULL)
-    {
-        std::cout << "Erro: Falha ao criar a janela GLFW" << std::endl;
+    if (!window) {
+        std::cout << "Erro ao criar a janela GLFW\n";
         glfwTerminate();
         return -1;
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-    // -----------------------------------------------------
-    // Inicialização do GLAD (carrega funções do OpenGL)
-    // -----------------------------------------------------
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-    {
-        std::cout << "Erro: Falha ao inicializar o GLAD" << std::endl;
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        std::cout << "Erro ao inicializar o GLAD\n";
         return -1;
     }
 
-    // -----------------------------------------------------
-    // Compilação e linkagem dos Shaders
-    // -----------------------------------------------------
-    // Vertex Shader
-    unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-    glCompileShader(vertexShader);
+    unsigned int vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
+    unsigned int fragOrange = compileShader(GL_FRAGMENT_SHADER, fragmentShaderSourceOrange);
+    unsigned int fragYellow = compileShader(GL_FRAGMENT_SHADER, fragmentShaderSourceYellow);
 
-    // Verificação de erros no Vertex Shader
-    int success;
-    char infoLog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        std::cout << "ERRO::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
+    unsigned int shaderOrange = createProgram(vertexShader, fragOrange);
+    unsigned int shaderYellow = createProgram(vertexShader, fragYellow);
 
-    // Fragment Shader
-    unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-    glCompileShader(fragmentShader);
-
-    // Verificação de erros no Fragment Shader
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        std::cout << "ERRO::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
-
-    // Criar programa de Shader e linkar os dois
-    unsigned int shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-
-    // Verificação de erros no link do programa
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-        std::cout << "ERRO::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
-    }
-
-    // Limpamos shaders já linkados
     glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
+    glDeleteShader(fragOrange);
+    glDeleteShader(fragYellow);
 
+    PrimitiveBuffers buffers = setupPrimitive(Triangle);
 
-    // Configura buffers de acordo com o primitivo escolhido
-    PrimitiveShape currentShape = Triangle; 
-    PrimitiveBuffers buffers = setupPrimitive(currentShape);
-
-    // -----------------------------------------------------
-    // Loop de renderização
-    // -----------------------------------------------------
     while (!glfwWindowShouldClose(window))
     {
-        // Entrada do usuário
         processInput(window);
-
-        // Limpar a tela com uma cor
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // Desenhar triângulo (ou retângulo se usar o EBO e 4 vértices)
-        glUseProgram(shaderProgram);
-        glBindVertexArray(buffers.VAO); // Obtém os dados de vértices e como desenhá-los
-
         if (buffers.useEBO) {
+            glUseProgram(shaderOrange);
+            glBindVertexArray(buffers.VAO[0]);
             glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         }
         else {
+            glUseProgram(shaderOrange);
+            glBindVertexArray(buffers.VAO[0]);
+            glDrawArrays(GL_TRIANGLES, 0, 3);
+
+            glUseProgram(shaderYellow);
+            glBindVertexArray(buffers.VAO[1]);
             glDrawArrays(GL_TRIANGLES, 0, 3);
         }
-       
-        // Troca de buffers e eventos
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    // -----------------------------------------------------
-    // Limpeza de recursos
-    // -----------------------------------------------------
-    glDeleteVertexArrays(1, &buffers.VAO);
-    glDeleteBuffers(1, &buffers.VBO);
+    glDeleteVertexArrays(2, buffers.VAO);
+    glDeleteBuffers(2, buffers.VBO);
     if (buffers.useEBO) glDeleteBuffers(1, &buffers.EBO);
-    glDeleteProgram(shaderProgram);
-
+    glDeleteProgram(shaderYellow);
+    glDeleteProgram(shaderOrange);
     glfwTerminate();
     return 0;
 }
 
-// ---------------------------------------------------------
-// Funções auxiliares
-// ---------------------------------------------------------
 void processInput(GLFWwindow* window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -192,21 +127,60 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
+unsigned int createProgram(unsigned int vertexShader, unsigned int fragmentShader) {
+    unsigned int program = glCreateProgram();
+    glAttachShader(program, vertexShader);
+    glAttachShader(program, fragmentShader);
+    glLinkProgram(program);
+
+    int success;
+    char infoLog[512];
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+    if (!success) {
+        glGetProgramInfoLog(program, 512, NULL, infoLog);
+        std::cout << "Erro ao linkar programa:\n" << infoLog << std::endl;
+    }
+
+    return program;
+}
+
+unsigned int compileShader(GLenum type, const char* source) {
+    unsigned int shader = glCreateShader(type);
+    glShaderSource(shader, 1, &source, NULL);
+    glCompileShader(shader);
+
+    int success;
+    char infoLog[512];
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(shader, 512, NULL, infoLog);
+        std::cout << "Erro ao compilar shader:\n" << infoLog << std::endl;
+    }
+
+    return shader;
+}
+
 PrimitiveBuffers setupPrimitive(PrimitiveShape shape) {
     PrimitiveBuffers buffers = {};
     buffers.useEBO = false;
 
-    float triangleVertices[] = {
-        -0.5f, -0.5f, 0.0f,
-         0.5f, -0.5f, 0.0f,
-         0.0f,  0.5f, 0.0f
+    float firstTriangle[] = {
+        -0.9f, -0.5f, 0.0f,
+         0.0f, -0.5f, 0.0f,
+        -0.45f, 0.5f, 0.0f
+    };
+
+    float secondTriangle[] = {
+         0.0f, -0.5f, 0.0f,
+         0.9f, -0.5f, 0.0f,
+         0.45f, 0.5f, 0.0f
     };
 
     float rectangleVertices[] = {
-         0.5f,  0.5f, 0.0f,  // top right
-         0.5f, -0.5f, 0.0f,  // bottom right
-        -0.5f, -0.5f, 0.0f,  // bottom left
-        -0.5f,  0.5f, 0.0f   // top left
+         0.5f,  0.5f, 0.0f,
+         0.5f, -0.5f, 0.0f,
+        -0.5f, -0.5f, 0.0f,
+        -0.5f,  0.5f, 0.0f
     };
 
     unsigned int rectangleIndices[] = {
@@ -214,34 +188,29 @@ PrimitiveBuffers setupPrimitive(PrimitiveShape shape) {
         1, 2, 3
     };
 
-    glGenVertexArrays(1, &buffers.VAO); // Cria VAO
-    glGenBuffers(1, &buffers.VBO); // Cria VBO
+    glGenVertexArrays(2, buffers.VAO);
+    glGenBuffers(2, buffers.VBO);
 
-    glBindVertexArray(buffers.VAO); // Bind do VAO (sempre primeiro, memoriza o que vem depois)
-    glBindBuffer(GL_ARRAY_BUFFER, buffers.VBO); // Bind do VBO
+    auto setupVAO = [](unsigned int vao, unsigned int vbo, const float* data, size_t size) {
+        glBindVertexArray(vao);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(0);
+    };
 
-    // Envia os dados para o buffer dependendo do shape escolhido
-    if (shape == Triangle)
-    {
-        glBufferData(GL_ARRAY_BUFFER, sizeof(triangleVertices), triangleVertices, GL_STATIC_DRAW); 
+    if (shape == Triangle) {
+        setupVAO(buffers.VAO[0], buffers.VBO[0], firstTriangle, sizeof(firstTriangle));
+        setupVAO(buffers.VAO[1], buffers.VBO[1], secondTriangle, sizeof(secondTriangle));
     }
-    else if (shape == Rectangle) {
-        glBufferData(GL_ARRAY_BUFFER, sizeof(rectangleVertices), rectangleVertices, GL_STATIC_DRAW);
+    else {
+        setupVAO(buffers.VAO[0], buffers.VBO[0], rectangleVertices, sizeof(rectangleVertices));
 
-        // Gera e envia EBO para o buffer (reaproveitar vértices com índices EBO)
         buffers.useEBO = true;
         glGenBuffers(1, &buffers.EBO);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers.EBO);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rectangleIndices), rectangleIndices, GL_STATIC_DRAW);
     }
-
-    // Define como o atributo será lido pelo Vertex Shader (layout location = 0)
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    // Unbind (boa prática, opcional)
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
 
     return buffers;
 }
