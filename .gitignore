@@ -1,0 +1,20 @@
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.db
+*.opendb
+
+# Build / Debug
+/x64/
+/OpenGL_basics/x64/
+*.obj
+*.pdb
+*.ilk
+*.idb
+*.exe
+*.dll
+*.log
+
+# Outros temporários
+*.cache
