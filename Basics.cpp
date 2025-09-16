@@ -23,6 +23,8 @@ const unsigned int SCR_HEIGHT = 600;
 
 unsigned int texture1, texture2;
 
+float mixValue = 0.2f;
+
 int main()
 {
     glfwInit();
@@ -71,6 +73,7 @@ int main()
         glBindTexture(GL_TEXTURE_2D, texture2);
 
         ourShader.use();
+        ourShader.setFloat("mixValue", mixValue);
 
         if (buffers.useEBO) {
             glBindVertexArray(buffers.VAO[0]);
@@ -133,6 +136,18 @@ void processInput(GLFWwindow* window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+    {
+        mixValue += 0.001f;
+        if (mixValue >= 1.0f) mixValue = 1.0f;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+    {
+        mixValue -= 0.001f;
+        if (mixValue <= 0.0f) mixValue = 0.0f;
+    }
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -143,6 +158,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 PrimitiveBuffers setupPrimitive(PrimitiveShape shape) {
     PrimitiveBuffers buffers = {};
     buffers.useEBO = false;
+    float tiling = 2.0;
 
     float triangleVertices[] = {
          0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,
@@ -151,10 +167,10 @@ PrimitiveBuffers setupPrimitive(PrimitiveShape shape) {
     };
 
     float rectangleVertices[] = {
-         0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,
-         0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,
+         0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0 * tiling, 1.0 * tiling,
+         0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0 * tiling, 0.0f,
         -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,
-        -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f
+        -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0 * tiling
     };
 
     unsigned int rectangleIndices[] = {
